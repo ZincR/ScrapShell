@@ -8,15 +8,19 @@ on eight example shells.
 
 ## Interactive viewer
 
-**[web/index.html](web/index.html)** replays all eight stages on every model: curvature regions,
+**[Open the viewer](https://zincr.github.io/ScrapShell/web/)** (hosted on GitHub Pages from
+[web/index.html](web/index.html)). It replays all eight stages on every model: curvature regions,
 guiding field, the field optimization iteration by iteration, the parameterization, the triangle mesh,
-the hexagonal dual and the planarization passes, with planarity colours and per-model numbers. It
-loads its data from `web/data/`, which browsers refuse to read from a `file://` page, so serve the
-folder:
+the hexagonal dual and the planarization passes, with planarity colours and per-model numbers.
+
+To run it locally, serve the folder (browsers refuse to load `web/data/` from a `file://` page):
 
 ```bash
 scripts/serve.sh        # http://localhost:8765/   (or: python3 -m http.server -d web)
 ```
+
+The empty `.nojekyll` file at the repo root makes GitHub Pages serve the files as they are, instead
+of running Jekyll over the whole repository (which fails on Markdown inside the Directional submodule).
 
 ## Pipeline
 
