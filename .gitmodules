@@ -1,0 +1,4 @@
+[submodule "third_party/Directional"]
+	path = third_party/Directional
+	url = https://github.com/avaxman/Directional.git
+	shallow = true
