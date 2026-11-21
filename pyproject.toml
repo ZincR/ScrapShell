@@ -1,0 +1,5 @@
+# Configuration for the Python tools (stock/) and their tests. The MATLAB and C++ parts are run and
+# built separately; see the README.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

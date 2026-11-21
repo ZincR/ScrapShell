@@ -1,0 +1,17 @@
+# Conda environment for the native build (tools/phcpf_mesher) and the Python tools (stock/, tests/).
+#   new:      conda env create -f environment.yml
+#   existing: conda env update -n scrapshell -f environment.yml
+name: scrapshell
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.12
+  - gmp
+  - cmake
+  - ninja
+  - numpy
+  - scipy
+  - shapely>=2.1      # maximum_inscribed_circle
+  - matplotlib
+  - pytest
