@@ -6,6 +6,13 @@ reproduction of PH-CPF, *Planar Hexagonal Meshing using Coordinate Power Fields*
 Vaxman, Ben-Chen, ACM TOG 40(4), 2021), plus a web viewer that replays every stage of the pipeline
 on eight example shells.
 
+## Docs
+
+- [docs/progress.md](docs/progress.md): where the project stands, results so far, and a dated log.
+- [docs/baseline.md](docs/baseline.md): how the PH-CPF baseline works, stage by stage, and where each
+  piece lives.
+- [docs/plan.md](docs/plan.md): the plan for the stock-driven extension, experiments and timeline.
+
 ## Interactive viewer
 
 **[Open the viewer](https://zincr.github.io/ScrapShell/web/)** (hosted on GitHub Pages from
