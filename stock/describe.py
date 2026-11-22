@@ -21,8 +21,9 @@ from shapely.geometry import Polygon
 from shapely.geometry.polygon import orient
 
 # Stopping tolerance of the inscribed-circle search, relative to sqrt(area). The radius it returns
-# is within this distance of the true inradius.
-INRADIUS_REL_TOL = 1e-6
+# is within this distance of the true inradius. Tighter is much slower on scraps with many
+# axis-aligned edges, where many centres tie (remnants: 2.7 ms at 1e-4, 25 ms at 1e-6).
+INRADIUS_REL_TOL = 1e-4
 
 
 def to_polygon(coords) -> Polygon:
@@ -71,7 +72,9 @@ def min_area_rectangle(poly: Polygon) -> tuple[float, float, float]:
 
     angle is the direction of the long side, in radians in [0, pi). One side of the optimal
     rectangle lies along an edge of the convex hull (rotating calipers), so trying every hull edge
-    direction gives the exact answer.
+    direction gives the exact answer. The optimum need not be unique (for a triangle, all three
+    edges give the same area), so among rectangles within a relative 1e-9 of the minimum area the
+    most elongated one wins.
     """
     hull = np.asarray(poly.convex_hull.exterior.coords, dtype=float)[:-1]
     edges = np.roll(hull, -1, axis=0) - hull
@@ -83,7 +86,9 @@ def min_area_rectangle(poly: Polygon) -> tuple[float, float, float]:
     across = -x * s + y * c          # and perpendicular to it
     w_along = along.max(axis=1) - along.min(axis=1)
     w_across = across.max(axis=1) - across.min(axis=1)
-    k = int(np.argmin(w_along * w_across))
+    area = w_along * w_across
+    elongation = np.maximum(w_along, w_across) / np.minimum(w_along, w_across)
+    k = int(np.argmax(np.where(area <= area.min() * (1 + 1e-9), elongation, -np.inf)))
     if w_along[k] >= w_across[k]:
         return float(w_along[k]), float(w_across[k]), float(angles[k] % np.pi)
     return float(w_across[k]), float(w_along[k]), float((angles[k] + np.pi / 2) % np.pi)

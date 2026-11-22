@@ -8,10 +8,15 @@ import pytest
 import shapely
 from shapely.geometry import Point, Polygon
 
-from stock.describe import describe, inscribed_circle, min_area_rectangle, to_polygon
+from stock.describe import (INRADIUS_REL_TOL, describe, inscribed_circle, min_area_rectangle,
+                            to_polygon)
 
 SQRT2, SQRT3, SQRT5 = math.sqrt(2), math.sqrt(3), math.sqrt(5)
 TOL = 1e-6
+# The inscribed-circle search stops within INRADIUS_REL_TOL * sqrt(area) of the true radius; the
+# known shapes below have area <= 3, so sqrt(area) < 2. Centres get a looser bound.
+MIC_TOL = 2 * INRADIUS_REL_TOL
+CENTER_TOL = 10 * MIC_TOL
 
 SQUARE = [(0, 0), (1, 0), (1, 1), (0, 1)]
 RECT_2x1 = [(0, 0), (2, 0), (2, 1), (0, 1)]
@@ -41,8 +46,8 @@ def test_unit_square():
     assert d.area == pytest.approx(1)
     assert d.perimeter == pytest.approx(4)
     assert d.n_vertices == 4
-    assert d.inradius == pytest.approx(0.5, abs=TOL)
-    assert d.incenter == pytest.approx((0.5, 0.5), abs=TOL)
+    assert d.inradius == pytest.approx(0.5, abs=MIC_TOL)
+    assert d.incenter == pytest.approx((0.5, 0.5), abs=CENTER_TOL)
     assert d.circumradius == pytest.approx(SQRT2 / 2)
     assert (d.length, d.width, d.elongation) == pytest.approx((1, 1, 1))
     assert d.convexity == pytest.approx(1)
@@ -52,10 +57,10 @@ def test_rectangle_2x1():
     d = describe(RECT_2x1)
     assert d.area == pytest.approx(2)
     assert d.perimeter == pytest.approx(6)
-    assert d.inradius == pytest.approx(0.5, abs=TOL)
+    assert d.inradius == pytest.approx(0.5, abs=MIC_TOL)
     # the center is not unique: anywhere on the midline between x = 0.5 and x = 1.5
-    assert d.incenter[1] == pytest.approx(0.5, abs=TOL)
-    assert 0.5 - TOL <= d.incenter[0] <= 1.5 + TOL
+    assert d.incenter[1] == pytest.approx(0.5, abs=CENTER_TOL)
+    assert 0.5 - CENTER_TOL <= d.incenter[0] <= 1.5 + CENTER_TOL
     assert d.circumradius == pytest.approx(SQRT5 / 2)
     assert (d.length, d.width, d.elongation) == pytest.approx((2, 1, 2))
     assert angle_diff(d.axis_angle, 0) == pytest.approx(0, abs=1e-12)
@@ -67,8 +72,8 @@ def test_regular_hexagon():
     assert d.area == pytest.approx(3 * SQRT3 / 2)
     assert d.perimeter == pytest.approx(6)
     assert d.n_vertices == 6
-    assert d.inradius == pytest.approx(SQRT3 / 2, abs=TOL)
-    assert d.incenter == pytest.approx((0, 0), abs=TOL)
+    assert d.inradius == pytest.approx(SQRT3 / 2, abs=MIC_TOL)
+    assert d.incenter == pytest.approx((0, 0), abs=CENTER_TOL)
     assert d.circumradius == pytest.approx(1)
     assert (d.length, d.width) == pytest.approx((2, SQRT3))
     assert d.elongation == pytest.approx(2 / SQRT3)
@@ -78,8 +83,8 @@ def test_regular_hexagon():
 def test_equilateral_triangle():
     d = describe(TRIANGLE)
     assert d.area == pytest.approx(SQRT3 / 4)
-    assert d.inradius == pytest.approx(SQRT3 / 6, abs=TOL)
-    assert d.incenter == pytest.approx((0.5, SQRT3 / 6), abs=TOL)
+    assert d.inradius == pytest.approx(SQRT3 / 6, abs=MIC_TOL)
+    assert d.incenter == pytest.approx((0.5, SQRT3 / 6), abs=CENTER_TOL)
     assert d.circumradius == pytest.approx(1 / SQRT3)
     assert (d.length, d.width) == pytest.approx((1, SQRT3 / 2))
 
@@ -91,11 +96,19 @@ def test_l_shape():
     assert d.n_vertices == 6
     # the largest circle sits in the corner square and touches the reflex vertex (1, 1):
     # c = sqrt(2) (1 - c)  ->  c = 2 - sqrt(2)
-    assert d.inradius == pytest.approx(2 - SQRT2, abs=TOL)
-    assert d.incenter == pytest.approx((2 - SQRT2, 2 - SQRT2), abs=TOL)
+    assert d.inradius == pytest.approx(2 - SQRT2, abs=MIC_TOL)
+    assert d.incenter == pytest.approx((2 - SQRT2, 2 - SQRT2), abs=CENTER_TOL)
     assert d.circumradius == pytest.approx(SQRT2)         # circle through (2, 0) and (0, 2)
     assert (d.length, d.width) == pytest.approx((2, 2))
     assert d.convexity == pytest.approx(3 / 3.5)          # hull cuts the corner triangle of area 1/2
+
+
+def test_rectangle_tie_prefers_elongated():
+    """A 3-4-5 triangle: all three edges give rectangles of area 12; the hypotenuse one
+    (5 x 2.4) is the most elongated, so it defines the long axis."""
+    d = describe([(0, 0), (4, 0), (0, 3)])
+    assert (d.length, d.width) == pytest.approx((5, 2.4))
+    assert angle_diff(d.axis_angle, math.atan2(3, -4)) == pytest.approx(0, abs=1e-12)
 
 
 # --- invariances and cross-checks -------------------------------------------------------------
@@ -108,12 +121,15 @@ def test_similarity_invariance(seed):
     R = np.array([[math.cos(theta), -math.sin(theta)], [math.sin(theta), math.cos(theta)]])
     a, b = describe(pts), describe(k * pts @ R.T + t)
     assert b.area == pytest.approx(k**2 * a.area)
-    for f in ("perimeter", "inradius", "circumradius", "length", "width"):
-        assert getattr(b, f) == pytest.approx(k * getattr(a, f), rel=1e-5), f
-    assert b.elongation == pytest.approx(a.elongation, rel=1e-5)
+    for f in ("perimeter", "circumradius", "length", "width"):
+        assert getattr(b, f) == pytest.approx(k * getattr(a, f), rel=1e-9), f
+    assert b.elongation == pytest.approx(a.elongation, rel=1e-9)
+    # each inscribed circle is within the search tolerance of the true one
+    mic = INRADIUS_REL_TOL * math.sqrt(b.area)
+    assert b.inradius == pytest.approx(k * a.inradius, abs=2 * mic)
     assert b.convexity == pytest.approx(a.convexity)
     assert angle_diff(b.axis_angle, a.axis_angle + theta) == pytest.approx(0, abs=1e-6)
-    assert b.incenter == pytest.approx(tuple(k * R @ np.array(a.incenter) + t), abs=1e-4 * k)
+    assert b.incenter == pytest.approx(tuple(k * R @ np.array(a.incenter) + t), abs=20 * mic)
 
 
 @pytest.mark.parametrize("seed", range(5))
@@ -128,7 +144,7 @@ def test_inradius_against_brute_force(seed):
     pts = shapely.points(gx.ravel(), gy.ravel())
     inside = shapely.contains(poly, pts)
     best = shapely.distance(pts[inside], poly.exterior).max()
-    assert best <= r + 1e-9
+    assert best <= r + INRADIUS_REL_TOL * math.sqrt(poly.area)
     assert r - best <= h                                   # the grid gets within one cell of it
     assert poly.exterior.distance(Point(center)) == pytest.approx(r, abs=1e-6)
     assert poly.contains(Point(center))
