@@ -92,7 +92,9 @@ Intermediate files (raw field, primal / dual / planar OFF meshes, logs) go to `r
   shared by every model, in `data/stock/deposit_s0.json`; every model is scaled to a 15 m span to
   use it. Shape descriptors (`describe.py`), four shape families (`shapes.py`), size distributions
   (`sizes.py`), model surfaces and baseline panels from `web/data` (`model_ref.py`), the generator
-  (`python -m stock.generate`) and the placement on a model (`python -m stock.place`). Tests are in
+  (`python -m stock.generate`), the placement on a model (`python -m stock.place`) and the figures
+  plus a quick fit preview against the baseline panels (`python -m stock.plot`, written to
+  `results/stock/`). Tests are in
   `tests/`; run them with `~/miniconda3/envs/scrapshell/bin/python -m pytest` (or with the env's
   `python` on your PATH).
 
