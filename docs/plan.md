@@ -45,11 +45,11 @@ larger.
 
 | Proposal step | Planned implementation | Status |
 | --- | --- | --- |
-| **Seed:** one footprint per scrap, sized by the stock | Size field σ over the surface, computed by 1D optimal transport between scrap sizes and footprint sizes | To do |
+| **Seed:** one footprint per scrap, sized by the stock | Size field σ over the surface, computed by 1D optimal transport between the deposit's scrap sizes and the footprint sizes | To do |
 | **Grow:** regions grow toward their scrap's size | PH-CPF field and seamless parameterization with the σ-scaled metric | Baseline done; σ hook to do |
 | **Intersect:** flat panels that close the shell | PH-CPF dual and planarization. Closed by construction | Done (baseline) |
 | **Match:** pair each scrap with a panel it fits | Exact fit test plus linear assignment between panels and scraps | To do |
-| **Check / Revise:** reseed where it fails | Feedback loop: shrink σ where panels fit no scrap; report coverage when the stock runs out | To do |
+| **Check / Revise:** reseed where it fails | Feedback loop: shrink σ where panels fit no scrap | To do |
 | **Cut:** trim each panel from its scrap | Place each panel in its scrap; export the cut outlines | To do |
 
 ### Why this instead of the proposal's pipeline
@@ -76,15 +76,16 @@ PH-CPF on macOS, 6 of 8 models at 1% planarity, web viewer. See [progress.md](pr
 
 ### Phase 1: stock and stock-driven sizing
 
-1. **Stock generator.** New Python module (`stock/`, using shapely).
-   - A scrap is a 2D polygon, possibly non-convex, in the model's units.
-   - Generate remnant-like shapes: sheets with rectangles or hexagons cut out, leaving L and U
-     shapes.
-   - Size distributions: uniform, bimodal, heavy-tailed. Plus a knob for total stock area relative to
-     the surface area (for example 1.2×, 2×, 4×).
-   - Per scrap: area, inradius (largest inscribed circle), elongation. Saved as JSON.
-   - *Done when* a script writes a stock file for a given model and distribution, and the viewer or a
-     plot shows it.
+1. **Stock generator** (done, [stock/](../stock/)). One deposit shared by every model, in meters.
+   - [data/stock/deposit_s0.json](../data/stock/deposit_s0.json): 4000 scraps, exactly 1000 from each
+     family (remnant, shard, blob, board), each family with the same size distribution. Size
+     (√area) is lognormal with median 0.5 m, cut off at 0.15–1.5 m: 1190 m² in all.
+   - Every model is given the same span: its bounding-box diagonal is scaled to 15 m. δ stays 0.5%
+     of the diagonal, which is then 75 mm on every model. At that span the models' surfaces are
+     75–284 m², so the deposit holds 4–16× each model's area and 4.5–10 scraps per baseline panel:
+     piece count never limits a layout.
+   - `python -m stock.generate` writes the deposit; `python -m stock.place` prints each model's
+     physical size against it.
 2. **Size field σ by 1D optimal transport.** New MATLAB or Python function.
    - Footprint size per face: the semi-axes are already computed in stage 3 of
      [run_phcpf.m](../matlab/run_phcpf.m) (`a1`, `a2`). Predict the panel's circumradius as c × the
@@ -92,12 +93,11 @@ PH-CPF on macOS, 6 of 8 models at 1% planarity, web viewer. See [progress.md](pr
    - Sort faces by footprint and scraps by inradius, both largest first. Walk the two lists together.
      Each scrap claims the surface area of one panel of its size; those faces get
      σ = min(1, scrap inradius ÷ predicted circumradius). This is the monotone (optimal) coupling: big
-     scraps go where the surface has room.
-   - If the stock runs out before the surface is covered, report the predicted coverage before
-     running anything.
+     scraps go where the surface has room. The deposit holds far more than one surface needs, so
+     this is a partial transport: it also chooses which scraps to use.
    - Smooth log σ with a few Laplacian steps and limit its change between neighbouring faces, so the
      field stays integrable.
-   - *Done when* σ can be plotted on metro for each stock distribution.
+   - *Done when* σ can be plotted on metro.
 3. **Hook σ into CPF.**
    - Add a `sigma` option to `CPF.set_param` that applies $g \leftarrow D g D$, with
      $D = \mathrm{diag}(1/\sigma, 1/\sigma)$, right after g is built
@@ -127,8 +127,7 @@ PH-CPF on macOS, 6 of 8 models at 1% planarity, web viewer. See [progress.md](pr
    area minus panel area), with a very large cost for pairs that do not fit. Outputs: the
    assignment, the panels that fit nowhere, utilization, and each panel's placement in its scrap.
 7. **Feedback loop.** Shrink σ around panels that fit no scrap (or drop already-used scraps from the
-   transport step) and rerun stages 3–8. Stop when every panel fits or the stock runs out. Running
-   out is the proposal's "Revise" case: report coverage.
+   transport step) and rerun stages 3–8. Stop when every panel fits.
 8. **Viewer stage 9.** Panels coloured by fit slack or scrap. A second view shows the pile of scraps
    with each panel's cut outline drawn inside its scrap.
 
@@ -137,7 +136,7 @@ PH-CPF on macOS, 6 of 8 models at 1% planarity, web viewer. See [progress.md](pr
 | Item | Choices |
 | --- | --- |
 | Models | metro, intersection (architectural shells), vase, sphere2con; six and c if time allows |
-| Stocks | uniform (should behave like plain PH-CPF), bimodal, heavy-tailed, scarce (total area close to the surface area) |
+| Stock | The one deposit (4000 scraps in meters), with every model at a 15 m span. Optional ablation: a deposit with a different size spread |
 | Method A | Plain PH-CPF with one global size. Sweep η and keep the best fit rate, then run the same assignment |
 | Method B | Stock-driven sizing, one pass, then assignment |
 | Method C | Stock-driven sizing with the feedback loop |
