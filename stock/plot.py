@@ -1,7 +1,7 @@
 """Figures of the deposit against the models' baseline panels, and a quick fit preview.
 
-    python -m stock.plot                          # results/stock/*.png, fit_preview.json, summary
-    python -m stock.plot --out docs/figures --panels 32 --models metro vase
+    python -m stock.plot                              # results/stock/*.png, fit_preview.json, summary
+    python -m stock.plot --out docs/figures/stock     # the figures in docs/stock.md
 
 Figures (every model at the common span of stock/place.py, so everything is in meters):
   deposit_sample.png  scraps of each family across the size range, and each model's median

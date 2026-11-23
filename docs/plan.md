@@ -76,7 +76,8 @@ PH-CPF on macOS, 6 of 8 models at 1% planarity, web viewer. See [progress.md](pr
 
 ### Phase 1: stock and stock-driven sizing
 
-1. **Stock generator** (done, [stock/](../stock/)). One deposit shared by every model, in meters.
+1. **Stock generator** (done, [stock/](../stock/); details in [stock.md](stock.md)). One deposit
+   shared by every model, in meters.
    - [data/stock/deposit_s0.json](../data/stock/deposit_s0.json): 4000 scraps, exactly 1000 from each
      family (remnant, shard, blob, board), each family with the same size distribution. Size
      (√area) is lognormal with median 0.5 m, cut off at 0.15–1.5 m: 1190 m² in all.
@@ -84,8 +85,12 @@ PH-CPF on macOS, 6 of 8 models at 1% planarity, web viewer. See [progress.md](pr
      of the diagonal, which is then 75 mm on every model. At that span the models' surfaces are
      75–284 m², so the deposit holds 4–16× each model's area and 4.5–10 scraps per baseline panel:
      piece count never limits a layout.
+   - **Fit, not count, is the constraint.** A quick fit preview finds that only 7–38% of scraps
+     can hold a typical baseline panel (Metro 7%: about 300 scraps for 436 panels). We keep the
+     0.5 m median on purpose: the size field should have real work to do. Revisit once the exact
+     fit test (item 5) exists.
    - `python -m stock.generate` writes the deposit; `python -m stock.place` prints each model's
-     physical size against it.
+     physical size against it; `python -m stock.plot` draws the figures and runs the fit preview.
 2. **Size field σ by 1D optimal transport.** New MATLAB or Python function.
    - Footprint size per face: the semi-axes are already computed in stage 3 of
      [run_phcpf.m](../matlab/run_phcpf.m) (`a1`, `a2`). Predict the panel's circumradius as c × the
@@ -97,6 +102,10 @@ PH-CPF on macOS, 6 of 8 models at 1% planarity, web viewer. See [progress.md](pr
      this is a partial transport: it also chooses which scraps to use.
    - Smooth log σ with a few Laplacian steps and limit its change between neighbouring faces, so the
      field stays integrable.
+   - The inradius rule is conservative. In the fit preview, centring a panel on the scrap's incenter
+     already passes 1.6–3.4× as many scraps as the inscribed-circle test
+     ([stock.md](stock.md#fit-preview)). Calibrate a factor on the scrap side too, or let the
+     feedback loop (item 7) recover the slack.
    - *Done when* σ can be plotted on metro.
 3. **Hook σ into CPF.**
    - Add a `sigma` option to `CPF.set_param` that applies $g \leftarrow D g D$, with
@@ -180,7 +189,7 @@ and MATLAB (size field, σ hook, feedback driver: items 2–4).
 | --- | --- |
 | Varying panel size makes the field harder to integrate: more singularities, rounding failures (the same failure as Car and Three holes) | Smooth σ and limit its gradient; reuse the continuation in [run_with_retries.m](../matlab/run_with_retries.m); run experiments on the models that already succeed |
 | The grid only roughly hits the target size, so first-pass panels miss their scraps | The feedback loop (item 7) |
-| The inradius proxy underestimates what fits in elongated scraps | Use the proxy only for sizing; the exact fit test decides the assignment |
+| The inradius proxy underestimates what fits in elongated scraps (measured: centring the panel on the incenter passes 1.6–3.4× as many scraps) | Use the proxy only for sizing; the exact fit test decides the assignment |
 | Bow-tie panels in saddle regions fit scraps poorly | Report fit rate per curvature region; consider smaller σ there |
 | The fit test is slow (hundreds of panels × scraps × rotations) | Filter by area and inradius; cache per panel shape |
 

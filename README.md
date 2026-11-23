@@ -11,6 +11,8 @@ on eight example shells.
 - [docs/progress.md](docs/progress.md): where the project stands, results so far, and a dated log.
 - [docs/baseline.md](docs/baseline.md): how the PH-CPF baseline works, stage by stage, and where each
   piece lives.
+- [docs/stock.md](docs/stock.md): the stock of offcuts: what is in it, how it is generated and
+  placed on a model, its file format, and how well it fits the baseline's panels.
 - [docs/plan.md](docs/plan.md): the plan for the stock-driven extension, experiments and timeline.
 
 ## Interactive viewer

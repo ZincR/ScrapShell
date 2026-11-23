@@ -1,0 +1,86 @@
+[
+  {
+    "model": "metro",
+    "label": "Metro",
+    "panels": 16,
+    "area": 0.4865,
+    "incenter": 0.074625,
+    "circle": 0.02225,
+    "byFamily": {
+      "remnant": 0.0525,
+      "shard": 0.082,
+      "blob": 0.1185,
+      "board": 0.045
+    }
+  },
+  {
+    "model": "intersection",
+    "label": "Intersection",
+    "panels": 16,
+    "area": 0.897125,
+    "incenter": 0.36350000000000005,
+    "circle": 0.216625,
+    "byFamily": {
+      "remnant": 0.3205,
+      "shard": 0.405,
+      "blob": 0.5205,
+      "board": 0.2145
+    }
+  },
+  {
+    "model": "six_s0",
+    "label": "Six",
+    "panels": 16,
+    "area": 0.8981250000000001,
+    "incenter": 0.38449999999999995,
+    "circle": 0.16875,
+    "byFamily": {
+      "remnant": 0.3415,
+      "shard": 0.43,
+      "blob": 0.5225,
+      "board": 0.259
+    }
+  },
+  {
+    "model": "vase",
+    "label": "Vase",
+    "panels": 16,
+    "area": 0.64725,
+    "incenter": 0.167125,
+    "circle": 0.06925,
+    "byFamily": {
+      "remnant": 0.13,
+      "shard": 0.1675,
+      "blob": 0.242,
+      "board": 0.11649999999999999
+    }
+  },
+  {
+    "model": "sphere2con_s0",
+    "label": "Sphere with cones",
+    "panels": 16,
+    "area": 0.585,
+    "incenter": 0.114625,
+    "circle": 0.0465,
+    "byFamily": {
+      "remnant": 0.088,
+      "shard": 0.131,
+      "blob": 0.1805,
+      "board": 0.0575
+    }
+  },
+  {
+    "model": "c_s0",
+    "label": "C",
+    "panels": 16,
+    "area": 0.699125,
+    "incenter": 0.11912500000000001,
+    "circle": 0.04525,
+    "byFamily": {
+      "remnant": 0.1005,
+      "shard": 0.136,
+      "blob": 0.1815,
+      "board": 0.057
+    }
+  }
+]

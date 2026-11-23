@@ -1,8 +1,9 @@
 # Progress
 
-Status of the Scrap Shells project (6.8410 Shape Analysis). Last updated 2026-11-21.
+Status of the Scrap Shells project (6.8410 Shape Analysis). Last updated 2026-11-22.
 
-For how the baseline works, see [baseline.md](baseline.md). For what comes next, see [plan.md](plan.md).
+For how the baseline works, see [baseline.md](baseline.md). For the stock of offcuts, see
+[stock.md](stock.md). For what comes next, see [plan.md](plan.md).
 
 ## At a glance
 
@@ -12,6 +13,7 @@ For how the baseline works, see [baseline.md](baseline.md). For what comes next,
 | Baseline: PH-CPF reproduced on macOS | Done (2026-11-11) | [README.md](../README.md), [baseline.md](baseline.md) |
 | Stage-by-stage web viewer | Done (2026-11-11) | [zincr.github.io/ScrapShell/web](https://zincr.github.io/ScrapShell/web/) |
 | Checkpoint report | Done (Nov 2026) | Not in the repo |
+| Extension: stock generator | Done (2026-11-22) | [stock.md](stock.md), [stock/](../stock/) |
 | Extension: stock-driven panel layout | Not started; plan proposed 2026-11-21 | [plan.md](plan.md) |
 | Final report and presentation | Not started | |
 
@@ -75,10 +77,22 @@ These are the changes we needed beyond replacing the executables. Details are in
   with `iter_opt` 1..3; [matlab/run_with_retries.m](../matlab/run_with_retries.m) actually goes to 10.
 - `results/smoke/` holds debugging runs from the port. It is git-ignored and can be deleted.
 
-## Not started
+## Extension so far
 
-Nothing of the stock-driven extension exists yet: no stock data, no stock-driven sizing, no fit
-test, no panel-to-scrap assignment. [plan.md](plan.md) lays out the work.
+**The stock exists** ([stock.md](stock.md)). One deposit of 4000 scraps in meters,
+[data/stock/deposit_s0.json](../data/stock/deposit_s0.json), shared by every model: 1000 each of
+four shape families (remnant, shard, blob, board), all with the same size distribution (√area
+lognormal, median 0.5 m). Every model is scaled to a 15 m span, so δ is 75 mm on every model. The
+deposit holds 4–16× each model's surface area, so piece count never limits a layout.
+
+**At baseline panel sizes, fit is the limit.** A quick fit preview (`python -m stock.plot`) finds
+that only 7–38% of scraps can hold a typical baseline panel when it is centred on the scrap's
+incenter; the exact test will find somewhat more. Metro is tightest: about 300 suitable scraps for
+436 panels. Blobs and shards fit hexagonal panels best, boards worst. We keep the 0.5 m median so
+that the stock genuinely shapes the layout.
+
+**Not started yet:** stock-driven sizing (σ), the exact fit test, panel-to-scrap assignment and the
+feedback loop. [plan.md](plan.md) lays out the work.
 
 ## Log
 
@@ -87,3 +101,9 @@ test, no panel-to-scrap assignment. [plan.md](plan.md) lays out the work.
   from GitHub Pages (`26fcc55`).
 - **Nov 2026** Checkpoint report submitted: baseline on 6 of 8 models.
 - **2026-11-21** Extension plan drafted ([plan.md](plan.md)); this `docs/` folder added.
+- **2026-11-21** Stock generator, steps 1–3: shape descriptors (`65a40ba`), four shape families
+  (`a7e955f`), and one deposit in meters with every model at a 15 m span (`1ff7913`). Design
+  changes along the way: one deposit for all models instead of one per model, equal family
+  shares, and absolute sizes instead of sizes relative to each model.
+- **2026-11-22** Stock figures and fit preview (`560dab6`): 7–38% of scraps hold a typical
+  baseline panel. Decision: keep the 0.5 m median size. [stock.md](stock.md) added.
