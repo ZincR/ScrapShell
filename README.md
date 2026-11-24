@@ -96,9 +96,13 @@ Intermediate files (raw field, primal / dual / planar OFF meshes, logs) go to `r
   (`sizes.py`), model surfaces and baseline panels from `web/data` (`model_ref.py`), the generator
   (`python -m stock.generate`), the placement on a model (`python -m stock.place`) and the figures
   plus a quick fit preview against the baseline panels (`python -m stock.plot`, written to
-  `results/stock/`). Tests are in
-  `tests/`; run them with `~/miniconda3/envs/scrapshell/bin/python -m pytest` (or with the env's
-  `python` on your PATH).
+  `results/stock/`).
+- `sizing/`: stock-driven sizing for the extension (Python, in progress). `footprint.py` gives the
+  panel PH-CPF aims for on each face, for one η or one per face, recovered from the viewer data
+  (`python -m sizing.footprint`).
+
+Tests are in `tests/`; run them with `~/miniconda3/envs/scrapshell/bin/python -m pytest` (or with
+the env's `python` on your PATH).
 
 ## Differences from the official implementation
 

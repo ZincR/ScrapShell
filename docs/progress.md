@@ -1,6 +1,6 @@
 # Progress
 
-Status of the Scrap Shells project (6.8410 Shape Analysis). Last updated 2026-11-22.
+Status of the Scrap Shells project (6.8410 Shape Analysis). Last updated 2026-11-24.
 
 For how the baseline works, see [baseline.md](baseline.md). For the stock of offcuts, see
 [stock.md](stock.md). For what comes next, see [plan.md](plan.md).
@@ -14,7 +14,7 @@ For how the baseline works, see [baseline.md](baseline.md). For the stock of off
 | Stage-by-stage web viewer | Done (2026-11-11) | [zincr.github.io/ScrapShell/web](https://zincr.github.io/ScrapShell/web/) |
 | Checkpoint report | Done (Nov 2026) | Not in the repo |
 | Extension: stock generator | Done (2026-11-22) | [stock.md](stock.md), [stock/](../stock/) |
-| Extension: stock-driven panel layout | Not started; plan proposed 2026-11-21 | [plan.md](plan.md) |
+| Extension: stock-driven panel layout | In progress: footprint model done (2026-11-24); plan revised the same day | [plan.md](plan.md), [sizing/](../sizing/) |
 | Final report and presentation | Not started | |
 
 ## What works
@@ -91,8 +91,19 @@ incenter; the exact test will find somewhat more. Metro is tightest: about 300 s
 436 panels. Blobs and shards fit hexagonal panels best, boards worst. We keep the 0.5 m median so
 that the stock genuinely shapes the layout.
 
-**Not started yet:** stock-driven sizing (σ), the exact fit test, panel-to-scrap assignment and the
-feedback loop. [plan.md](plan.md) lays out the work.
+**The footprint model exists** ([sizing/footprint.py](../sizing/footprint.py)). It recovers each
+face's curvatures from the baseline's sizing ellipses and predicts the panel PH-CPF makes there: a
+regular hexagon in the sizing metric with circumradius 0.70 matches the panels of all six finished
+models (0.68–0.71 each) and their counts within 6%.
+
+**It changed the plan.** The maximum element area η, not the curvature, sets the panel size on
+65–100% of each finished model's surface. Scaling the metric by a factor σ ≤ 1, as first planned,
+could therefore never let panels grow toward large scraps without raising η everywhere, and that
+stretches panels (up to 5.7:1 at the 90th percentile), which the deposit fits poorly. The size field now sets η per face
+instead ([plan.md](plan.md#why-the-cap-varies-per-face)).
+
+**Not started yet:** the η hook in CPF, scrap capacity and the coupling, the exact fit test,
+panel-to-scrap assignment and the feedback loop. [plan.md](plan.md) lays out the work.
 
 ## Log
 
@@ -107,3 +118,7 @@ feedback loop. [plan.md](plan.md) lays out the work.
   shares, and absolute sizes instead of sizes relative to each model.
 - **2026-11-22** Stock figures and fit preview (`560dab6`): 7–38% of scraps hold a typical
   baseline panel. Decision: keep the 0.5 m median size. [stock.md](stock.md) added.
+- **2026-11-24** Size field, step 1: the footprint model (`sizing/footprint.py`), with one panel
+  constant fitted on the baseline. Decision: a per-face η replaces the size factor σ, because η caps
+  the panel size on most of every surface and raising it for all faces stretches panels;
+  [plan.md](plan.md) revised.

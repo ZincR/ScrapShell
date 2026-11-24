@@ -161,7 +161,8 @@ panels. For 16 baseline panels per model, it counts the scraps that pass three t
 to loose:
 
 1. **Circle:** the scrap's inscribed circle is at least as large as the panel's enclosing circle.
-   This is the coarse test the size field in [plan.md](plan.md) (Phase 1, item 2) is built on.
+   The first draft of the size field in [plan.md](plan.md) (Phase 1, item 2) was built on this
+   coarse test.
 2. **Incenter:** the panel, with the centre of its enclosing circle on the scrap's incenter, lies
    inside the scrap at one of 36 rotations.
 3. **Area:** the scrap's area is at least the panel's. Necessary, so an upper bound.
@@ -191,8 +192,9 @@ What this means:
   more often than remnants (17%) and boards (12%). A 2:1 board holds a hexagon only as wide as its
   short side.
 - **The circle test is too pessimistic.** The incenter test, itself a lower bound, already passes
-  1.6–3.4× as many scraps. Sizing panels by scrap inradius alone would waste much of the stock; see
-  the note in [plan.md](plan.md) (Phase 1, item 2).
+  1.6–3.4× as many scraps. Sizing panels by scrap inradius alone would waste much of the stock, so
+  the size field measures each scrap's capacity by sliding and turning the panel instead
+  ([plan.md](plan.md), Phase 1, item 2).
 
 **Decision (2026-11-22): keep the 0.5 m median.** Fitting panels to the stock is the point of the
 extension, so the stock should be a real constraint. Raising the median to about 0.7 m, or shrinking
