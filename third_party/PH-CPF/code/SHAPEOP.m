@@ -264,8 +264,8 @@ classdef SHAPEOP
             [dminf, dmaxf, kminf, kmaxf] = SHAPEOP.shapeop_func(mesh);
             dminfb = reshape(mesh.EB*dminf(:),[],2);
             dmaxfb = reshape(mesh.EB*dmaxf(:),[],2);
-            kminfs = sqrt(kminf.^2 + e^2);
-            kmaxfs = sqrt(kmaxf.^2 + e^2);
+            kminfs = sqrt(kminf.^2 + e.^2);    % ScrapShell: e may be one value per face
+            kmaxfs = sqrt(kmaxf.^2 + e.^2);
             v11 = dminfb(:,1); v12 = dminfb(:,2);
             v21 = dmaxfb(:,1); v22 = dmaxfb(:,2);
             v = [spdiags(v11,0,nf,nf), spdiags(v12,0,nf,nf);...
@@ -288,8 +288,8 @@ classdef SHAPEOP
 
             dminfb = reshape(mesh.EB*dminf(:),[],2);
             dmaxfb = reshape(mesh.EB*dmaxf(:),[],2);
-            kminfs = sqrt(kminf.^2 + e^2);
-            kmaxfs = sqrt(kmaxf.^2 + e^2);
+            kminfs = sqrt(kminf.^2 + e.^2);    % ScrapShell: e may be one value per face
+            kmaxfs = sqrt(kmaxf.^2 + e.^2);
             
             % Scale 
             dminfb = spdiags(sqrt(r./kminfs), 0, mesh.nf, mesh.nf)*dminfb;

@@ -85,6 +85,12 @@ def _read(model: str, data_dir: Path) -> dict:
     return json.loads(path.read_text())
 
 
+def run_eta(data: dict):
+    """The eta a run used: a number, or one value per face (run_phcpf stores those packed)."""
+    eta = data["params"]["eta"]
+    return decode_array(eta).ravel().astype(float) if isinstance(eta, dict) else float(eta)
+
+
 def load_surface(model: str, span: float = DEFAULT_SPAN, data_dir: Path = WEB_DATA) -> Surface:
     """The model's surface at `span` meters, with curvatures recovered from its sizing ellipses."""
     if span <= 0:
@@ -100,7 +106,7 @@ def load_surface(model: str, span: float = DEFAULT_SPAN, data_dir: Path = WEB_DA
     # invert a = sqrt(delta / sqrt(k^2 + eps^2)) with the parameters of the baseline run, in model units
     bbd = float(data["bbd"])
     delta = data["params"]["delta"] * bbd
-    eps = delta / (data["params"]["eta"] * face_area.sum())
+    eps = delta / (run_eta(data) * face_area.sum())
     axes, dirs, curv = [], [], []
     for key in ("axis1", "axis2"):
         ax = decode_array(st["guide"][key])
@@ -204,7 +210,7 @@ def calibrate(model: str, data_dir: Path = WEB_DATA) -> Calibration | None:
     if not st.get("planar", {}).get("frames"):
         return None
     surf = load_surface(model, data_dir=data_dir)
-    fp = footprint(surf, data["params"]["delta"], data["params"]["eta"])
+    fp = footprint(surf, data["params"]["delta"], run_eta(data))
     V = decode_array(st["planar"]["frames"][-1]["V"]) * surf.meters_per_unit
     deg = decode_array(st["dual"]["D"]).ravel()
     idx = decode_array(st["dual"]["idx"]).ravel()

@@ -292,8 +292,13 @@ classdef CPF < handle
             
             % Scale by model's bounding box diagonal
             cpf.delta = cpf.p.Results.delta * cpf.M.bbd;
-            cpf.eta = cpf.p.Results.eta * sum(cpf.M.ta);
-            cpf.k_eps = cpf.delta / cpf.eta;
+            % ScrapShell: eta is one value or one per face (see PATCHES.md)
+            eta = cpf.p.Results.eta(:);
+            if ~(isscalar(eta) || numel(eta) == cpf.M.nf)
+                error('CPF:eta', 'eta must be one value or one per face (%d), got %d', cpf.M.nf, numel(eta));
+            end
+            cpf.eta = eta * sum(cpf.M.ta);
+            cpf.k_eps = cpf.delta ./ cpf.eta;
             
             % identity
             if cpf.siz == 'i'

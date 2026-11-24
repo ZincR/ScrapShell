@@ -16,6 +16,11 @@ our modifications below are shared under the same license.
 - `code/OPT.m`, `OPT.lsqnonlin`: when `phcpf_recorder('active')` is true, attach an `OutputFcn`
   that stores every Levenberg-Marquardt iterate, so the viewer can animate the field optimization.
   No effect on the optimization itself.
+- `code/CPF.m`, `CPF.set_param`, and `code/SHAPEOP.m`, `SHAPEOP.curvature_sizing` and
+  `check_curvature_sizing` (ScrapShell extension, 2026-11-24): `eta` may be one value per face
+  instead of one value. `set_param` checks its length and uses `cpf.delta ./ cpf.eta` for `k_eps`;
+  the sizing uses `e.^2` for `e^2`. A single eta gives bit-identical results; one per face sets the
+  footprint cap face by face (docs/plan.md, Phase 1, item 3).
 - `code/OPT.m`, `OPT.lsqnonlin`: commented out `opt.CheckGradients = false`. The option no longer
   exists in `optimoptions` (MATLAB R2026a raises an error); it was disabled anyway.
 

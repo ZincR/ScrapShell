@@ -1,12 +1,17 @@
 function write_manifest(webdata)
 %WRITE_MANIFEST Merge web/data/<id>.meta.json files into web/data/manifest.json.
+%   The catalog's models come first, in catalog order, then any other runs (variants written with
+%   run_phcpf's 'out' option), sorted by id.
 if nargin < 1
     webdata = fullfile(startup_phcpf(), 'web', 'data');
 end
 cat = model_catalog();
+ids = {cat.id};
+files = dir(fullfile(webdata, '*.meta.json'));
+extra = sort(setdiff(erase({files.name}, '.meta.json'), ids));
 models = {};
-for i = 1:numel(cat)
-    metaPath = fullfile(webdata, [cat(i).id '.meta.json']);
+for id = [ids, extra]
+    metaPath = fullfile(webdata, [id{1} '.meta.json']);
     if ~exist(metaPath, 'file'), continue; end
     models{end+1} = jsondecode(fileread(metaPath)); %#ok<AGROW>
 end

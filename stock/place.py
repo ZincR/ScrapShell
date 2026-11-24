@@ -65,9 +65,11 @@ def place(deposit: Mapping, pl: Placement) -> list[np.ndarray]:
     return [pl.to_model_units(s["polygon"]) for s in deposit["scraps"]]
 
 
-def model_ids(data_dir: Path = WEB_DATA) -> list[str]:
-    """Models in the viewer's manifest, in its order."""
-    return [m["id"] for m in json.loads((Path(data_dir) / "manifest.json").read_text())["models"]]
+def model_ids(data_dir: Path = WEB_DATA, variants: bool = False) -> list[str]:
+    """Models in the viewer's manifest, in its order. Variant runs of a model (written with
+    run_phcpf's 'out' option, e.g. the sizing checks) are left out unless `variants` is true."""
+    models = json.loads((Path(data_dir) / "manifest.json").read_text())["models"]
+    return [m["id"] for m in models if variants or m.get("model", m["id"]) == m["id"]]
 
 
 def main(argv: list[str] | None = None) -> int:

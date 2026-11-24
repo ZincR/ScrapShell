@@ -14,7 +14,7 @@ For how the baseline works, see [baseline.md](baseline.md). For the stock of off
 | Stage-by-stage web viewer | Done (2026-11-11) | [zincr.github.io/ScrapShell/web](https://zincr.github.io/ScrapShell/web/) |
 | Checkpoint report | Done (Nov 2026) | Not in the repo |
 | Extension: stock generator | Done (2026-11-22) | [stock.md](stock.md), [stock/](../stock/) |
-| Extension: stock-driven panel layout | In progress: footprint model done (2026-11-24); plan revised the same day | [plan.md](plan.md), [sizing/](../sizing/) |
+| Extension: stock-driven panel layout | In progress: footprint model, per-face η hook, smoothed size field, fit test and assignment done (2026-11-24) | [plan.md](plan.md), [sizing/](../sizing/), [matching/](../matching/) |
 | Final report and presentation | Not started | |
 
 ## What works
@@ -85,11 +85,11 @@ four shape families (remnant, shard, blob, board), all with the same size distri
 lognormal, median 0.5 m). Every model is scaled to a 15 m span, so δ is 75 mm on every model. The
 deposit holds 4–16× each model's surface area, so piece count never limits a layout.
 
-**At baseline panel sizes, fit is the limit.** A quick fit preview (`python -m stock.plot`) finds
-that only 7–38% of scraps can hold a typical baseline panel when it is centred on the scrap's
-incenter; the exact test will find somewhat more. Metro is tightest: about 300 suitable scraps for
-436 panels. Blobs and shards fit hexagonal panels best, boards worst. We keep the 0.5 m median so
-that the stock genuinely shapes the layout.
+**At baseline panel sizes every panel fits; larger panels are where fit binds.** A quick fit
+preview (`python -m stock.plot`) found that only 7–38% of scraps can hold a typical baseline panel
+centred on the scrap's incenter (Metro 7%). The exact fit test (see below) finds far more: all 436
+of Metro's baseline panels fit a scrap of their own. We keep the 0.5 m median so that the stock
+genuinely shapes the layout: it limits how large panels can grow.
 
 **The footprint model exists** ([sizing/footprint.py](../sizing/footprint.py)). It recovers each
 face's curvatures from the baseline's sizing ellipses and predicts the panel PH-CPF makes there: a
@@ -102,8 +102,36 @@ could therefore never let panels grow toward large scraps without raising η eve
 stretches panels (up to 5.7:1 at the 90th percentile), which the deposit fits poorly. The size field now sets η per face
 instead ([plan.md](plan.md#why-the-cap-varies-per-face)).
 
-**Not started yet:** the η hook in CPF, scrap capacity and the coupling, the exact fit test,
-panel-to-scrap assignment and the feedback loop. [plan.md](plan.md) lays out the work.
+**PH-CPF takes a per-face η; a larger η needs a smooth size field.** The hook is exact: η given
+per face, equal to the baseline's, reproduces the baseline run bit for bit. But 4× η fails integer
+rounding at every continuation level, with or without capping the footprint aspect at 2, and a 1× to
+16× ramp needs five doublings. Growing δ with η (the same footprint shapes, twice as large) rounds at
+once, so panel size is not the problem. The cause is a rough metric: with a larger η the footprints
+follow a per-face curvature estimate that jumps between neighbouring faces (median log-size jump
+across an edge 0.027, against 0.008 at the baseline). [sizing/eta.py](../sizing/eta.py) now turns a
+target panel area into η per face and can smooth the target first. 4×'s panel sizes after 400
+smoothing steps (jump 0.007) round after four doublings: 224 panels, 31 singularities, planarity max
+0.80%, distance 0.0095 bbd. With the aspect cap as well, eight doublings: 261 panels, 0.49%
+([plan.md](plan.md), Phase 1, item 4).
+
+**Panels fit the stock up to about twice the baseline's area.** [matching/](../matching/) has the
+exact fit test (any translation, 36 rotations, non-convex panels included) and the panel-to-scrap
+assignment (one panel per scrap, most panels first, then least waste). On Metro:
+
+| Run | Panels | Median panel area | Fit rate | Utilization |
+| --- | ---: | ---: | ---: | ---: |
+| Baseline | 436 | 0.26 m² | 100% | 77% |
+| η 1× to 16× | 233 | 0.42 m² | 100% | 70% |
+| η 4×, smoothed, aspect ≤ 2 | 261 | 0.43 m² | 100% | 72% |
+| η 4×, smoothed | 224 | 0.49 m² | 100% | 68% |
+| δ and η 4× | 89 | 1.04 m² | 20% | 71% |
+
+The inscribed-circle rule alone would fit only 45% of the baseline's panels. So plain PH-CPF already
+meets the Fit objective at its own size on Metro; the experiments will compare how few pieces each
+method reaches while every panel still fits ([plan.md](plan.md), Phase 2, item 6).
+
+**Not started yet:** scrap capacity and the coupling, the feedback loop, and the viewer's fit
+stage. [plan.md](plan.md) lays out the work.
 
 ## Log
 
@@ -122,3 +150,13 @@ panel-to-scrap assignment and the feedback loop. [plan.md](plan.md) lays out the
   constant fitted on the baseline. Decision: a per-face η replaces the size factor σ, because η caps
   the panel size on most of every surface and raising it for all faces stretches panels;
   [plan.md](plan.md) revised.
+- **2026-11-24** Size field, step 2: per-face η in PH-CPF (`CPF.set_param`, `SHAPEOP.curvature_sizing`;
+  see `third_party/PH-CPF/PATCHES.md`), variant runs in `run_phcpf.m`, and five Metro runs
+  (`matlab/run_eta_checks.m`, viewer group "Sizing checks"). The per-face baseline reproduces the
+  baseline exactly; 4× η fails rounding with or without an aspect cap; the 1×–16× ramp and δ+η 4×
+  reach stage 8.
+- **2026-11-24** Smoothed size field (`sizing/eta.py`: target area to η, Laplacian smoothing) and
+  two more Metro runs: 4× η smoothed rounds after four doublings (224 panels, 0.80%), and after eight
+  with the aspect cap (261 panels, 0.49%); a rough metric was what broke rounding. Exact fit test and
+  assignment (`matching/`): every baseline Metro panel fits a scrap (77% utilization), as do the
+  panels of every run up to a 0.5 m² median; at 1 m² only 20% fit.

@@ -2,37 +2,52 @@ function out = run_phcpf(id, varargin)
 %RUN_PHCPF Run the PH-CPF baseline on one model and export every stage for the web viewer.
 %   out = run_phcpf('metro')                 % all stages
 %   out = run_phcpf('metro', 'upto', 4)      % stop after a stage (1 = input ... 8 = planarized)
+%   out = run_phcpf('metro', 'eta', etaPerFace, 'out', 'metro_eta_x', 'label', 'Metro, ...', ...
+%                   'group', 'Sizing checks')    % a variant run, kept beside the baseline
 %
-%   Writes web/data/<id>.json (+ <id>.meta.json, manifest.json) and results/<id>/ (intermediates).
+%   Writes web/data/<out>.json (+ <out>.meta.json, manifest.json) and results/<out>/
+%   (intermediates); <out> is the model id unless 'out' is given.
 %   Stages: 1 input, 2 curvature regions, 3 guiding field + sizing ellipses, 4 CPF field (LM
 %   iterates), 5 seamless parameterization, 6 primal triangle mesh, 7 hex dual, 8 planarized.
 %   Parameters default to runme.m of the official code (n = 6, delta = 0.5%, eta = 0.2%, mp = 1%).
+%   eta may be one value, one value per input face, or the path of a text file with one per face.
+%   The run's eta is stored in params.eta: a number, or a packed array (json_array) per face.
 root = startup_phcpf();
 ip = inputParser;
 ip.addParameter('upto', 8);
 ip.addParameter('delta', 0.005);   % max distance to surface, fraction of bbox diagonal
-ip.addParameter('eta', 0.002);     % max element area, fraction of total area
+ip.addParameter('eta', 0.002);     % max element area, fraction of total area (scalar, per face, or file)
 ip.addParameter('mp', 1);          % planarity target, percent
 ip.addParameter('iter_opt', 0);    % continuity-weight continuation passes (runme retries 1..3)
 ip.addParameter('strip', 1);       % boundary layers removed by the dualizer (open shells)
 ip.addParameter('maxFrames', 36);  % animation frames exported per animated stage
+ip.addParameter('out', '');        % output id (default: the model id)
+ip.addParameter('label', '');      % viewer label (default: the catalog's)
+ip.addParameter('group', '');      % viewer group (default: the catalog's)
 ip.parse(varargin{:});
 opt = ip.Results;
 
 cat = model_catalog();
 entry = cat(strcmp({cat.id}, id));
 if isempty(entry), error('run_phcpf: unknown model %s', id); end
+oid = char(opt.out); if isempty(oid), oid = id; end
+label = char(opt.label); if isempty(label), label = entry.label; end
+group = char(opt.group); if isempty(group), group = entry.group; end
+eta = opt.eta;
+if ischar(eta) || isstring(eta), eta = readmatrix(eta, 'FileType', 'text'); end
+eta = eta(:);
+if isscalar(eta), etaOut = eta; else, etaOut = json_array(eta); end
 
-resdir = fullfile(root, 'results', id);
+resdir = fullfile(root, 'results', oid);
 webdata = fullfile(root, 'web', 'data');
 if ~exist(resdir, 'dir'), mkdir(resdir); end
 offPath = fullfile(root, 'third_party', 'PH-CPF', 'data', [id '.off']);
 mesherBin = fullfile(root, 'build', 'phcpf_mesher', 'phcpf_mesher');
 
-out = struct('id', id, 'label', entry.label, 'group', entry.group, ...
-             'params', struct('n', 6, 'delta', opt.delta, 'eta', opt.eta, 'mp', opt.mp, 'iter_opt', opt.iter_opt), ...
+out = struct('id', oid, 'model', id, 'label', label, 'group', group, ...
+             'params', struct('n', 6, 'delta', opt.delta, 'eta', etaOut, 'mp', opt.mp, 'iter_opt', opt.iter_opt), ...
              'stages', struct());
-meta = struct('id', id, 'label', entry.label, 'group', entry.group, 'file', [id '.json'], ...
+meta = struct('id', oid, 'model', id, 'label', label, 'group', group, 'file', [oid '.json'], ...
               'stages', [], 'metrics', struct(), 'error', '');
 
 try
@@ -43,11 +58,14 @@ try
     out.bbd = bbd;
     meta.nv = size(X, 1); meta.nf = size(T, 1); meta.bbd = bbd;
     done(1);
-    fprintf('[%s] 1 input: %d vertices, %d faces\n', id, size(X, 1), size(T, 1));
+    fprintf('[%s] 1 input: %d vertices, %d faces\n', oid, size(X, 1), size(T, 1));
     if opt.upto < 2, finish(); return; end
 
     %% Stages 2-3: curvature, guiding field, sizing (CPF.set_param, as runme.m)
-    params = {'n', 6, 'delta', opt.delta, 'eta', opt.eta, 'mp', opt.mp, ...
+    if ~(isscalar(eta) || numel(eta) == size(T, 1))
+        error('run_phcpf: eta has %d values for %d faces', numel(eta), size(T, 1));
+    end
+    params = {'n', 6, 'delta', opt.delta, 'eta', eta, 'mp', opt.mp, ...
               'lsm', 1, 'lc', 1, 'lsi', 1, 'la', 1, 'lin', 1, 'lcj', 1, 'lo', 1, ...
               'siz', 'k', 'optinit', 'k', 'iter_opt', opt.iter_opt, ...
               'datadir', [fileparts(offPath) filesep], 'outdir', [resdir filesep]};
@@ -67,7 +85,7 @@ try
     meta.metrics.regions = struct('planar', sum(region == 0), 'elliptic', sum(region == 1), ...
                                   'parabolic', sum(region == 2), 'hyperbolic', sum(region == 3));
     done(2);
-    fprintf('[%s] 2 curvature: %s\n', id, jsonencode(meta.metrics.regions));
+    fprintf('[%s] 2 curvature: %s\n', oid, jsonencode(meta.metrics.regions));
     if opt.upto < 3, finish(); return; end
 
     % guiding 2-RoSy field (optimized_guiding_field) and sizing ellipses {w : w' g w = 1}
@@ -77,7 +95,7 @@ try
     a2 = S.dmaxf .* sqrt(cpf.delta ./ S.kmaxfs);
     out.stages.guide = struct('dir', json_array(w), 'axis1', json_array(a1), 'axis2', json_array(a2));
     done(3);
-    fprintf('[%s] 3 guiding field + sizing ellipses\n', id);
+    fprintf('[%s] 3 guiding field + sizing ellipses\n', oid);
     if opt.upto < 4, finish(); return; end
 
     %% Stage 4: CPF optimization (Levenberg-Marquardt), recording iterates
@@ -107,7 +125,7 @@ try
     meta.metrics.lmIterations = numel(XS) - 1;
     done(4);
     fprintf('[%s] 4 CPF field: %d LM iterates, %d singularities, LICO min/mean %.3f, %.1fs\n', ...
-        id, numel(XS), numel(sv), meta.metrics.licoMin, meta.metrics.timeField);
+        oid, numel(XS), numel(sv), meta.metrics.licoMin, meta.metrics.timeField);
     clear XS
     if opt.upto < 5, finish(); return; end
 
@@ -133,7 +151,7 @@ try
     meta.metrics.nIntegerVars = binfo.nInteger;
     meta.metrics.flippedAfterRounding = binfo.flippedFaces;
     fprintf('[%s] 5 BarrierPoissonSolve: %d integer variables, Poisson error %.2g, success %d, %d flipped faces, %.1fs\n', ...
-        id, binfo.nInteger, binfo.poissonError, ok, binfo.flippedFaces, meta.metrics.timeRounding);
+        oid, binfo.nInteger, binfo.poissonError, ok, binfo.flippedFaces, meta.metrics.timeRounding);
     if ok ~= 1
         error('BarrierPoissonSolve failed, cannot find integer param.');   % CPF.param_and_mesh message
     end
@@ -160,7 +178,7 @@ try
     meta.metrics.primalDegrees = accumarray(Dp, 1)';
     done(6);
     fprintf('[%s] 5-6 param + primal mesh: %d polygons (degrees %s), mesher singularities %d vs field %d\n', ...
-        id, numel(Fp), mat2str(meta.metrics.primalDegrees), ms.nSing, meta.metrics.nSing);
+        oid, numel(Fp), mat2str(meta.metrics.primalDegrees), ms.nSing, meta.metrics.nSing);
     if opt.upto < 7, finish(); return; end
 
     %% Stage 7: barycentric hex dual
@@ -172,7 +190,7 @@ try
         'planarity', json_array(pd));
     meta.metrics.planMaxBefore = max(pd); meta.metrics.planMeanBefore = mean(pd);
     done(7);
-    fprintf('[%s] 7 dual: %d panels, planarity max %.2f%% mean %.3f%%\n', id, numel(Fd), max(pd), mean(pd));
+    fprintf('[%s] 7 dual: %d panels, planarity max %.2f%% mean %.3f%%\n', oid, numel(Fd), max(pd), mean(pd));
     if opt.upto < 8, finish(); return; end
 
     %% Stage 8: planarization
@@ -191,10 +209,10 @@ try
     meta.metrics.planarPasses = hist.pass(end);
     done(8);
     fprintf('[%s] 8 planarized: max %.3f%% mean %.3f%%, dist max %.4f bbd, %d passes, %.1fs\n', ...
-        id, km.planMax, km.planMean, km.distMax, hist.pass(end), meta.metrics.timePlanar);
+        oid, km.planMax, km.planMean, km.distMax, hist.pass(end), meta.metrics.timePlanar);
 catch err
     meta.error = err.message;
-    fprintf(2, '[%s] stopped: %s\n', id, getReport(err, 'basic'));
+    fprintf(2, '[%s] stopped: %s\n', oid, getReport(err, 'basic'));
 end
 finish();
 
@@ -202,8 +220,8 @@ finish();
         meta.stages(end+1) = k;
     end
     function finish()
-        write_json(fullfile(webdata, [id '.json']), out);
-        write_json(fullfile(webdata, [id '.meta.json']), meta);
+        write_json(fullfile(webdata, [oid '.json']), out);
+        write_json(fullfile(webdata, [oid '.meta.json']), meta);
         write_manifest(webdata);
     end
 end

@@ -15,9 +15,11 @@ it fits in the project, see [plan.md](plan.md) (Phase 1, item 1). The code is in
 - **Every model is scaled to a 15 m span** (its bounding-box diagonal). PH-CPF's δ stays 0.5% of
   the diagonal, so it is 75 mm on every model.
 - **Piece count is never the limit.** The deposit holds 4–16× each model's surface area.
-- **Fit is the limit.** At the baseline's panel sizes, only 7–38% of scraps can hold a typical panel
-  (a quick estimate, and a lower bound; see [Fit preview](#fit-preview)). Stock-driven sizing will
-  have to shrink panels where the scraps are too small. Metro is the tightest case.
+- **Fit limits how large panels can grow.** The quick fit preview below finds that only 7–38% of
+  scraps can hold a typical baseline panel centred on their incenter, a lower bound. The exact fit
+  test ([matching/fit.py](../matching/fit.py), 2026-11-24) finds that every one of Metro's 436
+  baseline panels fits a scrap of its own, and that fit binds only for panels about twice the
+  baseline's area or more ([plan.md](plan.md), Phase 2, item 6).
 
 ![14 scraps of each family from smallest to largest, and each model's median baseline panel, to scale](figures/stock/deposit_sample.png)
 
